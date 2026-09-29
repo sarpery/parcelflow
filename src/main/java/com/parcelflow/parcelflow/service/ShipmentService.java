@@ -1,6 +1,7 @@
 package com.parcelflow.parcelflow.service;
 
 import com.parcelflow.parcelflow.domain.Shipment;
+import com.parcelflow.parcelflow.dto.CreateShipmentRequest;
 import com.parcelflow.parcelflow.exception.InvalidShipmentStatusException;
 import com.parcelflow.parcelflow.exception.ShipmentNotFoundException;
 import com.parcelflow.parcelflow.repository.ShipmentRepository;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class ShipmentService {
@@ -22,11 +24,27 @@ public class ShipmentService {
         this.shipmentRepository = shipmentRepository;
     }
 
-    public Shipment createShipment(Shipment shipment){
+    public Shipment createShipment(CreateShipmentRequest request){
+        Shipment shipment = new Shipment();
+
+        shipment.setTrackingNumber(generateTrackingNumber());
+        shipment.setSenderName(request.senderName());
+        shipment.setRecipientName(request.recipientName());
+        shipment.setOrigin(request.origin());
+        shipment.setDestination(request.destination());
+        shipment.setEstimatedDelivery(request.estimatedDelivery());
+
         shipment.setStatus(ShipmentStatus.CREATED);
         shipment.setCreatedAt(LocalDateTime.now());
 
         return shipmentRepository.save(shipment);
+    }
+
+    private String generateTrackingNumber() {
+        return "PF-" + UUID.randomUUID()
+                .toString()
+                .substring(0, 8)
+                .toUpperCase();
     }
 
     public List<Shipment> getAllShipments(){
