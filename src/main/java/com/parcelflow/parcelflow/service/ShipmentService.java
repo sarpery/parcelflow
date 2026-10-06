@@ -7,12 +7,17 @@ import com.parcelflow.parcelflow.exception.ShipmentNotFoundException;
 import com.parcelflow.parcelflow.repository.ShipmentRepository;
 import jakarta.validation.Valid;
 import org.jspecify.annotations.NonNull;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import com.parcelflow.parcelflow.domain.ShipmentStatus;
 import org.springframework.web.bind.annotation.RequestBody;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -47,8 +52,14 @@ public class ShipmentService {
                 .toUpperCase();
     }
 
-    public List<Shipment> getAllShipments(){
-        return shipmentRepository.findAll();
+    public Page<Shipment> getAllShipments(int page, int size) {
+        Pageable pageable = PageRequest.of(
+                page,
+                size,
+                Sort.by("createdAt").descending()
+        );
+
+        return shipmentRepository.findAll(pageable);
     }
 
     public Shipment getShipment(Long id){
@@ -83,6 +94,14 @@ public class ShipmentService {
                throw new InvalidShipmentStatusException(currentStatus,newStatus);
            }
 
+    }
+
+    public List<Shipment> getShipmentsByStatus(ShipmentStatus status){
+        return shipmentRepository.findByStatus(status);
+    }
+
+    public Optional<Shipment> getShipmentByTrackingNumber(String trackingNumber){
+        return shipmentRepository.findByTrackingNumber(trackingNumber);
     }
 
 }

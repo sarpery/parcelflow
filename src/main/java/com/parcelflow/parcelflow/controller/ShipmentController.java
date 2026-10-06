@@ -7,6 +7,7 @@ import com.parcelflow.parcelflow.dto.ShipmentResponse;
 import com.parcelflow.parcelflow.dto.StatusUpdateRequest;
 import com.parcelflow.parcelflow.service.ShipmentService;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -28,12 +29,11 @@ public class ShipmentController {
     }
 
     @GetMapping
-    public List<ShipmentResponse> getAllShipments() {
-        return shipmentService.getAllShipments()
-                .stream()
-                .map(shipment -> ShipmentResponse.from(shipment))
-                .toList();
-
+    public Page<ShipmentResponse> getAllShipments(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        return shipmentService.getAllShipments(page, size).map(ShipmentResponse::from);
     }
 
     @GetMapping("/{id}")
@@ -47,6 +47,16 @@ public class ShipmentController {
     public ShipmentResponse updateStatus(@PathVariable Long id, @Valid @RequestBody StatusUpdateRequest request){
         Shipment shipment = shipmentService.updateStatus(id, request.status());
         return ShipmentResponse.from(shipment);
+    }
+
+    @GetMapping("/status/{status}")
+    public List<ShipmentResponse> getShipmentsByStatus(
+            @PathVariable ShipmentStatus status
+    ) {
+        return shipmentService.getShipmentsByStatus(status)
+                .stream()
+                .map(ShipmentResponse::from)
+                .toList();
     }
 }
 
