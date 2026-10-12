@@ -6,9 +6,11 @@ import {
 } from "../api";
 
 interface ShipmentDetailsProps {
+    token: string;
     shipment: Shipment;
     onUpdated: (shipment: Shipment) => void;
     onBack: () => void;
+    isAdmin: boolean;
 }
 
 const statuses: ShipmentStatus[] = [
@@ -25,6 +27,8 @@ export default function ShipmentDetails({
                                             shipment,
                                             onUpdated,
                                             onBack,
+                                            token,
+                                            isAdmin
                                         }: ShipmentDetailsProps) {
 
     const [newStatus, setNewStatus] =
@@ -45,6 +49,7 @@ export default function ShipmentDetails({
         try {
             const updatedShipment =
                 await updateShipmentStatus(
+                    token,
                     shipment.id,
                     newStatus
                 );
@@ -92,9 +97,10 @@ export default function ShipmentDetails({
 
             <hr />
 
-            <h3>Change status</h3>
-
-            <select
+            {isAdmin && (
+            <div>
+                <h3>Change status</h3>
+                <select
                 value={newStatus}
                 onChange={(event) =>
                     setNewStatus(
@@ -131,6 +137,8 @@ export default function ShipmentDetails({
                 </p>
             )}
 
-        </div>
+        </div>)}
+                </div>
+
     );
 }

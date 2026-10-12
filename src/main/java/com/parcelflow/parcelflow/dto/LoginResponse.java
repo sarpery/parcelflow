@@ -1,4 +1,4 @@
 package com.parcelflow.parcelflow.dto;
 
-public record LoginResponse (String token) {
+public record LoginResponse (String token, String role) {
 }

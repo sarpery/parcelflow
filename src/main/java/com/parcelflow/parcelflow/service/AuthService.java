@@ -3,12 +3,14 @@ package com.parcelflow.parcelflow.service;
 import com.parcelflow.parcelflow.domain.User;
 import com.parcelflow.parcelflow.domain.UserRole;
 import com.parcelflow.parcelflow.dto.LoginRequest;
+import com.parcelflow.parcelflow.dto.LoginResponse;
 import com.parcelflow.parcelflow.dto.RegisterRequest;
 import com.parcelflow.parcelflow.repository.UserRepository;
 import com.parcelflow.parcelflow.security.JwtService;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -43,7 +45,7 @@ public class AuthService {
 
         userRepository.save(user);
     }
-    public String login(LoginRequest request) {
+    public LoginResponse login(LoginRequest request) {
 
         Authentication authentication =
                 authenticationManager.authenticate(
@@ -53,8 +55,20 @@ public class AuthService {
                         )
                 );
 
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        UserDetails userDetails =
+                (UserDetails) authentication.getPrincipal();
 
-        return jwtService.generateToken(userDetails);
+        String token = jwtService.generateToken(userDetails);
+
+        String role = authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .filter(authority -> authority.startsWith("ROLE_"))
+                .map(authority -> authority.substring(5))
+                .findFirst()
+                .orElseThrow(() ->
+                        new IllegalStateException("User has no role")
+                );
+
+        return new LoginResponse(token, role);
     }
 }

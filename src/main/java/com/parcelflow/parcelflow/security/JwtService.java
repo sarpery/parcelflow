@@ -1,5 +1,6 @@
 package com.parcelflow.parcelflow.security;
 
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -40,11 +41,13 @@ public class JwtService {
     }
 
     public String extractUsername(String token) {
-        return Jwts.parser()
-                .verifyWith(getSigningKey()) //never trust the username extracted from a token until its signature has been verified
+        return parseAndValidateToken(token).getSubject();
+    }
+
+    private Claims parseAndValidateToken(String token){
+        return Jwts.parser().verifyWith(getSigningKey())
                 .build()
-                .parseSignedClaims(token)
-                .getPayload().getSubject();
+                .parseSignedClaims(token).getPayload();
     }
 
     private SecretKey getSigningKey() {

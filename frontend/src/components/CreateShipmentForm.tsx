@@ -1,10 +1,15 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
+import { createShipment } from "../api";
 
 interface Props {
     onCreated: () => void;
+    token: string;
 }
 
-export default function CreateShipmentForm({ onCreated }: Props) {
+export default function CreateShipmentForm({
+                                               onCreated,
+                                               token
+                                           }: Props) {
 
     const [senderName, setSenderName] = useState("");
     const [recipientName, setRecipientName] = useState("");
@@ -12,37 +17,29 @@ export default function CreateShipmentForm({ onCreated }: Props) {
     const [destination, setDestination] = useState("");
 
     async function handleSubmit(
-        event: React.FormEvent<HTMLFormElement>
+        event: FormEvent<HTMLFormElement>
     ) {
         event.preventDefault();
 
-        const response = await fetch(
-            "http://localhost:8080/api/shipments",
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    senderName,
-                    recipientName,
-                    origin,
-                    destination,
-                }),
-            }
-        );
+        try {
+            await createShipment(token, {
+                senderName,
+                recipientName,
+                origin,
+                destination,
+            });
 
-        if (!response.ok) {
+            setSenderName("");
+            setRecipientName("");
+            setOrigin("");
+            setDestination("");
+
+            onCreated();
+
+        } catch (error) {
+            console.error(error);
             alert("Could not create shipment");
-            return;
         }
-
-        setSenderName("");
-        setRecipientName("");
-        setOrigin("");
-        setDestination("");
-
-        onCreated();
     }
 
     return (

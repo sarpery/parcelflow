@@ -10,6 +10,14 @@ export interface Shipment {
     estimatedDelivery: string | null;
 }
 
+export interface CreateShipmentRequest {
+    senderName: string;
+    recipientName: string;
+    origin: string;
+    destination: string;
+    estimatedDelivery?: string | null;
+}
+
 export type ShipmentStatus =
     | "CREATED"
     | "PICKED_UP"
@@ -29,7 +37,14 @@ export interface ShipmentPage {
     number: number;
 }
 
+export type UserRole = "USER" | "ADMIN";
+
+export interface LoginResponse {
+    token: string;
+    role: UserRole;
+}
 export async function getShipments(
+    token: string,
     page = 0,
     size = 3,
     status?: ShipmentStatus
@@ -44,7 +59,12 @@ export async function getShipments(
     }
 
     const response = await fetch(
-        `${API_URL}/shipments?${params.toString()}`
+        `${API_URL}/shipments?${params.toString()}`,
+        {
+            headers:{
+                Authorization: `Bearer ${token}`,
+            }
+        }
     );
 
     if (!response.ok) {
@@ -65,22 +85,19 @@ export async function getShipment(id: number): Promise<Shipment> {
 }
 
 export async function updateShipmentStatus(
+    token: string,
     id: number,
     status: ShipmentStatus
 ): Promise<Shipment> {
 
-    const response = await fetch(
-        `${API_URL}/shipments/${id}/status`,
-        {
-            method: "PATCH",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                status: status,
-            }),
-        }
-    );
+    const response = await fetch(`${API_URL}/shipments/${id}/status`, {
+        method: "PATCH",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status }),
+    });
 
     if (!response.ok) {
         throw new Error("Failed to update shipment status");
@@ -89,3 +106,50 @@ export async function updateShipmentStatus(
     return response.json();
 }
 
+export async function login(
+    username: string,
+    password: string
+): Promise<LoginResponse> {
+
+    const response = await fetch(`${API_URL}/auth/login`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            username,
+            password,
+        }),
+    });
+
+    if (!response.ok) {
+        if (response.status === 401) {
+            throw new Error("Invalid username or password");
+        }
+
+        throw new Error("Login failed");
+    }
+
+    return response.json();
+}
+
+export async function createShipment(
+    token: string,
+    request: CreateShipmentRequest
+): Promise<Shipment> {
+
+    const response = await fetch(`${API_URL}/shipments`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+        throw new Error("Failed to create shipment");
+    }
+
+    return response.json();
+}
