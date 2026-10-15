@@ -1,9 +1,11 @@
 package com.parcelflow.parcelflow.service;
-
+import org.springframework.context.ApplicationEventPublisher;
 import com.parcelflow.parcelflow.domain.Shipment;
 import com.parcelflow.parcelflow.dto.CreateShipmentRequest;
+import com.parcelflow.parcelflow.event.ShipmentStatusChangedEvent;
 import com.parcelflow.parcelflow.exception.InvalidShipmentStatusException;
 import com.parcelflow.parcelflow.exception.ShipmentNotFoundException;
+import com.parcelflow.parcelflow.kafka.ShipmentEventProducer;
 import com.parcelflow.parcelflow.repository.ShipmentRepository;
 import jakarta.validation.Valid;
 import org.jspecify.annotations.NonNull;
@@ -13,8 +15,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import com.parcelflow.parcelflow.domain.ShipmentStatus;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.RequestBody;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -24,9 +28,11 @@ import java.util.UUID;
 public class ShipmentService {
 
     private final ShipmentRepository shipmentRepository;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
-    public ShipmentService(ShipmentRepository shipmentRepository) {
+    public ShipmentService(ShipmentRepository shipmentRepository, ApplicationEventPublisher applicationEventPublisher) {
         this.shipmentRepository = shipmentRepository;
+        this.applicationEventPublisher = applicationEventPublisher;
     }
 
     public Shipment createShipment(CreateShipmentRequest request){
@@ -68,15 +74,31 @@ public class ShipmentService {
                         new ShipmentNotFoundException(id));
     }
 
+    @Transactional
     public Shipment updateStatus(Long shipmentId, ShipmentStatus newStatus) {
 
         Shipment shipment = getShipment(shipmentId);
 
-        validateTransition(shipment.getStatus(), newStatus);
+        ShipmentStatus previousStatus = shipment.getStatus();
+
+        validateTransition(previousStatus, newStatus);
 
         shipment.setStatus(newStatus);
 
-        return shipmentRepository.save(shipment);
+        Shipment savedShipment = shipmentRepository.save(shipment);
+
+        ShipmentStatusChangedEvent event =
+                new ShipmentStatusChangedEvent(
+                        savedShipment.getId(),
+                        savedShipment.getTrackingNumber(),
+                        previousStatus,
+                        newStatus,
+                        Instant.now()
+                );
+
+        applicationEventPublisher.publishEvent(event);
+
+        return savedShipment;
     }
 
     private void validateTransition(ShipmentStatus currentStatus, ShipmentStatus newStatus) {
