@@ -1,0 +1,94 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+
+    image: parcelflow-frontend:local
+    container_name: parcelflow-frontend
+
+    ports:
+      - "127.0.0.1:5173:80"
+
+    depends_on:
+      - backend
+  postgres:
+    image: postgres:18
+    container_name: parcelflow-postgres
+    ports:
+      - "127.0.0.1:5432:5432"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - postgres_data:/var/lib/postgresql
+
+  kafka:
+    image: apache/kafka:4.3.1
+    container_name: parcelflow-kafka
+
+    ports:
+      - "127.0.0.1:9092:9092"
+
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: "broker,controller"
+
+      KAFKA_LISTENERS: "PLAINTEXT://:9092,INTERNAL://:29092,CONTROLLER://:9093"
+
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://localhost:9092,INTERNAL://kafka:29092"
+
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT"
+
+      KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@localhost:9093"
+
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+
+      KAFKA_LOG_DIRS: "/tmp/kraft-combined-logs"
+      CLUSTER_ID: "5L6g3nShT-eMCtK--X86sw"
+
+    volumes:
+      - kafka_data:/tmp/kraft-combined-logs
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    image: parcelflow-backend:local
+    container_name: parcelflow-backend
+
+    ports:
+      - "127.0.0.1:8080:8080"
+
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/parcelflow
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be configured}
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+volumes:
+  postgres_data:
+    external: true
+    name: parcelflow_postgres_data
+
+  kafka_data:
+    external: true
+    name: parcelflow_kafka_data
