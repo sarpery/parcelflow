@@ -35,3 +35,4 @@ build/
 
 .env
 backups/
+/src/main/java/com/parcelflow/parcelflow/learning/
