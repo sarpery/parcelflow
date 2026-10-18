@@ -8,6 +8,7 @@ permissions:
   contents: read
 
 jobs:
+
   docker-build:
     name: Build Docker Images
     runs-on: ubuntu-latest
@@ -30,6 +31,8 @@ jobs:
           file: ./Dockerfile
           push: false
           tags: parcelflow-backend:ci
+          cache-from: type=gha,scope=parcelflow-backend
+          cache-to: type=gha,scope=parcelflow-backend,mode=max
 
       - name: Build frontend Docker image
         uses: docker/build-push-action@v7
@@ -38,6 +41,10 @@ jobs:
           file: ./frontend/Dockerfile
           push: false
           tags: parcelflow-frontend:ci
+          cache-from: type=gha,scope=parcelflow-frontend
+          cache-to: type=gha,scope=parcelflow-frontend,mode=max
+
+
   backend-build:
     name: Build Spring Boot
     runs-on: ubuntu-latest
@@ -51,6 +58,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
+          cache: 'maven'
 
       - name: Build backend with Maven
         run: mvn -B -DskipTests package
