@@ -27,7 +27,7 @@ export type ShipmentStatus =
     | "EXCEPTION"
     | "CANCELLED";
 
-const API_URL = "http://localhost:8080/api";
+const API_URL = "/api";
 
 export interface ShipmentPage {
     content: Shipment[];

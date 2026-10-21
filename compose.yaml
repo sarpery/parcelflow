@@ -6,15 +6,25 @@ services:
 
     image: parcelflow-frontend:local
     container_name: parcelflow-frontend
+    restart: unless-stopped
 
     ports:
       - "127.0.0.1:5173:80"
 
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/ || exit 1" ]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
   postgres:
     image: postgres:18
     container_name: parcelflow-postgres
+    restart: unless-stopped
     ports:
       - "127.0.0.1:5432:5432"
     environment:
@@ -32,6 +42,7 @@ services:
   kafka:
     image: apache/kafka:4.3.1
     container_name: parcelflow-kafka
+    restart: unless-stopped
 
     ports:
       - "127.0.0.1:9092:9092"
@@ -59,6 +70,13 @@ services:
 
     volumes:
       - kafka_data:/tmp/kraft-combined-logs
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 >/dev/null 2>&1"]
+      interval: 30s
+      timeout: 15s
+      retries: 5
+      start_period: 60s
+
   backend:
     build:
       context: .
@@ -66,11 +84,13 @@ services:
 
     image: parcelflow-backend:local
     container_name: parcelflow-backend
+    restart: unless-stopped
 
     ports:
       - "127.0.0.1:8080:8080"
 
     environment:
+      SPRING_PROFILES_ACTIVE: prod
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/parcelflow
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
@@ -83,7 +103,13 @@ services:
       postgres:
         condition: service_healthy
       kafka:
-        condition: service_started
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "-fsS", "http://localhost:8080/actuator/health" ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 45s
 volumes:
   postgres_data:
     external: true

@@ -1,0 +1,10 @@
+
+services:
+  backend:
+    image: ghcr.io/sarpery/parcelflow-backend:latest
+    build: !reset null
+    ports: !reset []
+
+  frontend:
+    image: ghcr.io/sarpery/parcelflow-frontend:latest
+    build: !reset null
