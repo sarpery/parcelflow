@@ -59,3 +59,15 @@ GitHub Actions automatically validates:
 - Frontend Docker image build
 
 The workflow runs on pushes and pull requests.
+
+## Deployment
+
+ParcelFlow uses Docker Compose to run the frontend, backend,
+PostgreSQL, and Apache Kafka together.
+
+The application includes health checks, restart policies,
+environment-specific Spring Boot configuration, and an
+Nginx reverse proxy for API routing.
+
+See the [Deployment Guide](docs/deployment.md) for setup,
+architecture, configuration, and troubleshooting instructions.
