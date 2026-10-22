@@ -140,16 +140,35 @@ Published tags include `latest` and the corresponding Git commit SHA.
 
 Registry packages may require authentication if they are private.
 
+### Security and Event Reliability
+
+ParcelFlow uses JWT-based authentication and role-based
+authorization, with Spring Security tests covering
+authenticated, unauthenticated, and forbidden requests.
+
+Shipment status updates publish application events after
+the database transaction commits.
+
+Current limitation: Kafka publishing failures are logged,
+but events are not durably queued for automatic recovery.
+
+Potential future improvements:
+
+- Add a PostgreSQL transactional outbox.
+- Implement reliable event retries and monitoring.
+- Make Kafka consumers idempotent.
+- Test real JWT signing, expiration, and tampering.
+- Run security and integration tests in GitHub Actions.
+- Review permission rules for shipment creation and other operations.
+
 ## Production Considerations
 
 Before hosting ParcelFlow publicly, additional work is required:
 
 - Configure HTTPS and a public-facing ingress or reverse proxy.
 - Restrict backend, database, and Kafka network exposure.
-- Use secure credentials and rotate any previously exposed secrets.
 - Implement controlled database migrations.
 - Configure automated backups and recovery procedures.
-- Add monitoring, automated tests, and appropriate resource limits.
 - Review Kafka event-delivery reliability, including a possible transactional outbox.
 
 The current environment is a local production-style simulation rather than a fully hardened production deployment.
