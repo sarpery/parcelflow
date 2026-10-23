@@ -60,8 +60,8 @@ jobs:
           java-version: '21'
           cache: 'maven'
 
-      - name: Build backend with Maven
-        run: mvn -B -DskipTests package
+      - name: Test and build Spring Boot
+        run: mvn -B verify
 
   frontend-build:
     name: Build React
